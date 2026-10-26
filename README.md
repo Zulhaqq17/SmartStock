@@ -9,7 +9,7 @@ Stack: PHP 8.3 (Apache), MySQL 8, Docker, phpMyAdmin (dev only).
 
 ## Quick start
 
-Requirements: [Docker Desktop](https://www.docker.com/products/docker-desktop/) and [Git](git-scm.com/download/win).
+Requirements: [Docker Desktop](https://www.docker.com/products/docker-desktop/) and [Git](https://git-scm.com/download/win).
 
 ## Cloning the repo
 Open terminal in the folder that you want the project to be save in and use the command
@@ -66,8 +66,8 @@ git status # See what files you've changed or staged
 ```bash
 git add . # Stage all changed files
 git commit -m "feat: description of what you built" # Save your changes locally with a descriptive message
-git push -u origin urbranchname # Push your branch to GitHub for the first time
-git push # Push  updates to the same branch
+git push -u origin feature/your-feature-name # First push only (links local branch to remote)
+git push # All future pushes on this branch
 ```
 
 #### After PR Merged
@@ -75,7 +75,7 @@ git push # Push  updates to the same branch
 ```bash
 git checkout main
 git pull origin main # Switch back to main and update it
-git branch -d urbranchname # Delete your old local branch
+git branch -d feature/your-feature-name # Delete your old local branch
 ```
 PHP files in `src/` are mounted into the container, so edit and refresh. No rebuild needed.
 
