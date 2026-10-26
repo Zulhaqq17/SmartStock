@@ -49,10 +49,11 @@ docker compose exec db mysql -u root -p smartstock   # MySQL shell
 ```bash
 git checkout main
 git pull origin main  # Get the latest code from main
-
+```
 # Create your branch on GitHub:
 ![Much easier on GitHub](./img/Branch1.png)
 
+```bash
 git fetch origin # Download new branch references from GitHub
 git checkout feature/your-feature-name  # Switch to your new feature branch
 git status # See what files you've changed or staged
