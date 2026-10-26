@@ -50,7 +50,7 @@ docker compose exec db mysql -u root -p smartstock   # MySQL shell
 git checkout main
 git pull origin main  # Get the latest code from main
 ```
-# Create your branch on GitHub:
+#### Create your branch on GitHub:
 ![Much easier on GitHub](./img/Branch1.png)
 
 ```bash
