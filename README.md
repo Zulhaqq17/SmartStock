@@ -1,23 +1,25 @@
 # SmartStock
 
-Instructions/Cheatsheet to if u forgor 
+Instructions/Cheatsheet  if u forgor 
 
 Smart Inventory and Expiry Tracking System to Reduce Product Wastage in Food Manufacturing SMEs.
-BITU 3923 Workshop 2, Group K27, UTeM FTMK.
+BITU 3923 Workshop 2, Group K27.
 
 Stack: PHP 8.3 (Apache), MySQL 8, Docker, phpMyAdmin (dev only).
 
 ## Quick start
 
-Requirements: [Docker Desktop](https://www.docker.com/products/docker-desktop/) and Git.
+Requirements: [Docker Desktop](https://www.docker.com/products/docker-desktop/) and [Git](git-scm.com/download/win).
 
 ## Cloning the repo
-
+Open terminal in the folder that you want the project to be save in and use the command
 ```bash
-git clone <repo-url> smartstock
+git clone https://github.com/Zulhaqq17/SmartStock.git smartstock 
 cd smartstock
-docker compose up -d --build
+cp .env.example .env  # Copy example and create local .env configuration
+docker compose up -d --build 
 ```
+
 
 | Service | URL |
 |---|---|
@@ -32,6 +34,7 @@ Most of the stuff already been setup so its fine
 ## Everyday commands
 
 ### 1. Docker Commands
+
 ```bash
 docker compose up -d            # start
 docker compose logs -f web      # watch PHP/Apache logs
@@ -42,16 +45,24 @@ docker compose exec db mysql -u root -p smartstock   # MySQL shell
 
 ### 2. Daily Git Command (Aku pon selalu lupa)
 #### Starting & Branching
+
 ```bash
 git checkout main
 git pull origin main  # Get the latest code from main
-git checkout -b feature/your-feature-name  # Create and switch to a new feature branch
+
+# Create your branch on GitHub:
+![Much easier on GitHub](./img/Branch1.png)
+
+git fetch origin # Download new branch references from GitHub
+git checkout feature/your-feature-name  # Switch to your new feature branch
 git status # See what files you've changed or staged
 ```
 
-#### Saving & Pushing Changes
-```bash
 
+
+#### Saving & Pushing Changes
+
+```bash
 git add . # Stage all changed files
 git commit -m "feat: description of what you built" # Save your changes locally with a descriptive message
 git push -u origin urbranchname # Push your branch to GitHub for the first time
@@ -59,13 +70,10 @@ git push # Push  updates to the same branch
 ```
 
 #### After PR Merged
+
 ```bash
-
-
 git checkout main
 git pull origin main # Switch back to main and update it
-
-
 git branch -d urbranchname # Delete your old local branch
 ```
 PHP files in `src/` are mounted into the container, so edit and refresh. No rebuild needed.
