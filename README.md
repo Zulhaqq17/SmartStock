@@ -1,5 +1,7 @@
 # SmartStock
 
+Instructions/Cheatsheet to if u forgor 
+
 Smart Inventory and Expiry Tracking System to Reduce Product Wastage in Food Manufacturing SMEs.
 BITU 3923 Workshop 2, Group K27, UTeM FTMK.
 
@@ -9,10 +11,11 @@ Stack: PHP 8.3 (Apache), MySQL 8, Docker, phpMyAdmin (dev only).
 
 Requirements: [Docker Desktop](https://www.docker.com/products/docker-desktop/) and Git.
 
+## Cloning the repo
+
 ```bash
 git clone <repo-url> smartstock
 cd smartstock
-cp .env.example .env        # Windows PowerShell: copy .env.example .env
 docker compose up -d --build
 ```
 
@@ -24,8 +27,11 @@ docker compose up -d --build
 
 Open http://localhost:8080. You should see "Database connection: OK", 8 tables and 5 sample batches ordered by expiry date.
 
+Most of the stuff already been setup so its fine 
+
 ## Everyday commands
 
+### 1. Docker Commands
 ```bash
 docker compose up -d            # start
 docker compose logs -f web      # watch PHP/Apache logs
@@ -34,6 +40,34 @@ docker compose down -v          # stop AND wipe the database (re-runs db/init/*.
 docker compose exec db mysql -u root -p smartstock   # MySQL shell
 ```
 
+### 2. Daily Git Command (Aku pon selalu lupa)
+#### Starting & Branching
+```bash
+git checkout main
+git pull origin main  # Get the latest code from main
+git checkout -b feature/your-feature-name  # Create and switch to a new feature branch
+git status # See what files you've changed or staged
+```
+
+#### Saving & Pushing Changes
+```bash
+
+git add . # Stage all changed files
+git commit -m "feat: description of what you built" # Save your changes locally with a descriptive message
+git push -u origin urbranchname # Push your branch to GitHub for the first time
+git push # Push  updates to the same branch
+```
+
+#### After PR Merged
+```bash
+
+
+git checkout main
+git pull origin main # Switch back to main and update it
+
+
+git branch -d urbranchname # Delete your old local branch
+```
 PHP files in `src/` are mounted into the container, so edit and refresh. No rebuild needed.
 
 ## Project structure
@@ -64,13 +98,6 @@ Keep `docs/smartstock_erd.dbml` in sync with `01_schema.sql`.
 - Open a Pull Request into `main`; at least one teammate reviews before merging.
 - Pull `main` before starting new work: `git pull origin main`.
 
-```bash
-git checkout main && git pull
-git checkout -b feature/module-5-expiry-alerts
-# ...work, then...
-git add . && git commit -m "feat: add near-expiry check"
-git push -u origin feature/module-5-expiry-alerts
-```
 
 ## Modules
 
