@@ -1,0 +1,101 @@
+// SmartStock ERD (Group K27) - paste into dbdiagram.io
+// Lines marked NEW or CHANGED differ from the original ERD
+
+Table roles {
+  role_id int [pk, increment]
+  role_name varchar(50) [not null, unique]
+}
+
+Table users {
+  user_id int [pk, increment]
+  role_id int [not null]
+  full_name varchar(100) [not null]
+  email varchar(100) [not null, unique]
+  password_hash varchar(255) [not null]
+  is_active boolean [not null, default: true]            // NEW
+  created_at timestamp [default: `now()`]
+}
+
+Table categories {
+  category_id int [pk, increment]
+  category_name varchar(100) [not null, unique]
+  description text
+  expiry_alert_days int [not null, default: 7, note: 'Days before expiry to flag a batch as near expiry'] // NEW
+}
+
+Table products {
+  product_id int [pk, increment]
+  category_id int [not null]
+  product_name varchar(150) [not null]
+  sku_code varchar(50) [not null, unique]
+  unit_of_measure varchar(30) [not null]
+  min_stock_level decimal(10,2) [not null, default: 0]
+  is_active boolean [not null, default: true]            // NEW
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]                // NEW
+}
+
+Table batches {
+  batch_id int [pk, increment]
+  product_id int [not null]
+  batch_number varchar(100) [not null]
+  initial_quantity decimal(10,2) [not null]
+  current_quantity decimal(10,2) [not null]
+  manufacture_date date
+  expiry_date date [note: 'Nullable for non-perishable items']  // CHANGED
+  status varchar(20) [not null, default: 'active', note: 'active, near_expiry, expired, depleted']
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]                // NEW
+
+  indexes {
+    (product_id, batch_number) [unique]                  // NEW
+    (product_id, expiry_date)                            // NEW: FEFO query
+  }
+}
+
+Table stock_transactions {
+  transaction_id int [pk, increment]
+  batch_id int [not null]
+  user_id int [not null]
+  transaction_type varchar(50) [not null, note: 'received, used, adjustment']
+  quantity_changed decimal(10,2) [not null, note: 'Signed: negative when stock is used']
+  remarks text
+  transaction_date timestamp [default: `now()`]
+}
+
+Table demand_forecasts {
+  forecast_id int [pk, increment]
+  product_id int [not null]
+  forecast_date date [not null]
+  predicted_demand_qty decimal(10,2) [not null]
+  predicted_spoilage_qty decimal(10,2) [not null]
+  recommended_reorder_qty decimal(10,2) [not null]
+  confidence_score decimal(5,2)
+  generated_at timestamp [default: `now()`]
+}
+
+// NEW table for Module 5 alert management
+Table alerts {
+  alert_id int [pk, increment]
+  alert_type varchar(20) [not null, note: 'expired, near_expiry, low_stock']
+  product_id int [not null]
+  batch_id int [note: 'Null for low_stock alerts']
+  message varchar(255) [not null]
+  is_resolved boolean [not null, default: false]
+  created_at timestamp [default: `now()`]
+  resolved_at timestamp
+
+  indexes {
+    (alert_type, product_id, batch_id, is_resolved)
+    (is_resolved, created_at)
+  }
+}
+
+Ref: users.role_id > roles.role_id
+Ref: products.category_id > categories.category_id
+Ref: batches.product_id > products.product_id
+Ref: stock_transactions.batch_id > batches.batch_id
+Ref: stock_transactions.user_id > users.user_id
+Ref: demand_forecasts.product_id > products.product_id
+Ref: alerts.product_id > products.product_id
+Ref: alerts.batch_id > batches.batch_id
