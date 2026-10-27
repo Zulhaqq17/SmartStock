@@ -12,6 +12,7 @@ services:
       DB_NAME: ${MYSQL_DATABASE}
       DB_USER: ${MYSQL_USER}
       DB_PASS: ${MYSQL_PASSWORD}
+      APP_ENV: ${APP_ENV:-development}
     depends_on:
       db:
         condition: service_healthy
@@ -19,7 +20,7 @@ services:
   db:
     image: mysql:8.0
     container_name: smartstock_db
-    restart: always
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
