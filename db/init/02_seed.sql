@@ -19,3 +19,10 @@ INSERT INTO batches (product_id, batch_number, initial_quantity, current_quantit
   (3, 'FLR-C1', 100, 100, DATE_SUB(CURDATE(), INTERVAL 30 DAY), DATE_ADD(CURDATE(), INTERVAL 120 DAY)),
   (4, 'SUG-D1',  60, 60, DATE_SUB(CURDATE(), INTERVAL 30 DAY), DATE_ADD(CURDATE(), INTERVAL 20 DAY));
 -- Expected: MILK-A1 expired | MILK-A2 near expiry (5-day rule) | BUT-B1 low stock (8 < 10) | SUG-D1 near expiry (30-day rule)
+
+-- Dev-only users so stock_transactions has a valid user_id. NOT real accounts (password_hash is a dummy).
+-- Module 1 owner: replace with proper registration/login when ready.
+INSERT INTO users (role_id, full_name, email, password_hash) VALUES
+  (1, 'Dev Manager',   'manager@dev.local',   'DEV_ONLY_NOT_A_REAL_HASH'),
+  (2, 'Dev Warehouse', 'warehouse@dev.local', 'DEV_ONLY_NOT_A_REAL_HASH'),
+  (3, 'Dev Production','production@dev.local','DEV_ONLY_NOT_A_REAL_HASH');
