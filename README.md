@@ -10,6 +10,7 @@ Stack: PHP 8.3 (Apache), MySQL 8, Docker, phpMyAdmin (dev only).
 ## Quick start
 
 Requirements: [Docker Desktop](https://www.docker.com/products/docker-desktop/) and [Git](https://git-scm.com/download/win).
+Open Docker Desktop first and wait until it says running.
 
 ## Cloning the repo
 Open terminal in the folder that you want the project to be save in and use the command
@@ -27,21 +28,33 @@ docker compose up -d --build
 | phpMyAdmin | http://localhost:8081 |
 | MySQL (from host) | `localhost:3307` |
 
-Open http://localhost:8080. You should see "Database connection: OK", 8 tables and 5 sample batches ordered by expiry date.
+Wait about 20 seconds on the first start (MySQL is importing the database), then open http://localhost:8080/health.php.
+You should see "Database connection: OK", 8 tables and 5 sample batches ordered by expiry date.
 
 Most of the stuff already been setup so its fine 
+
+## Testing without login (dev only)
+
+Login (Module 1) is not done yet, so to test your pages as any role go to http://localhost:8080/dev_login.php
+and pick Manager / Warehouse Staff / Production Worker.
+It only works if your `.env` has `APP_ENV=development` (already in `.env.example`).
+We delete this file before final submission.
 
 ## Everyday commands
 
 ### 1. Docker Commands
 
 ```bash
-docker compose up -d            # start
+docker compose up -d            # start (normal daily command)
 docker compose logs -f web      # watch PHP/Apache logs
 docker compose down             # stop (keeps data)
-docker compose down -v          # stop AND wipe the database (re-runs db/init/*.sql)
+docker compose down -v          # stop AND wipe your local database (re-runs db/init/*.sql)
 docker compose exec db mysql -u root -p smartstock   # MySQL shell
 ```
+PHP files in `src/` are mounted into the container, so edit and refresh. No rebuild needed.
+
+After `git pull`: run `docker compose up -d --build` only if `Dockerfile` or `docker-compose.yml` changed,
+and `docker compose down -v && docker compose up -d --build` only if something in `db/init/` changed.
 
 ### 2. Daily Git Command (Aku pon selalu lupa)
 #### Starting & Branching
@@ -75,19 +88,23 @@ git push # All future pushes on this branch
 ```bash
 git checkout main
 git pull origin main # Switch back to main and update it
-git branch -d feature/your-feature-name # Delete your old local branch
+git branch -d feature/your-feature-name # Delete your old local branch (use -D if git says "not fully merged")
 ```
-PHP files in `src/` are mounted into the container, so edit and refresh. No rebuild needed.
 
 ## Project structure
 
 ```
-db/init/        SQL run automatically on first start (schema, then seed)
-src/public/     Web root (index.php and page entry points)
-src/config/     Shared config, e.g. database connection
-docs/           Flowcharts, ERD (smartstock_erd.dbml), diagrams
-.github/        Pull request template
+db/init/              SQL run automatically on first start (schema, then seed)
+src/config/           Database connection
+src/includes/         Shared: bootstrap, auth_check, header, footer, helpers (leader owns)
+src/modules/<name>/   Logic and SQL per module (Service.php files)
+src/public/<name>/    Pages per module (web root)
+src/public/health.php Database health check
+docs/                 MODULES.md, CONVENTIONS.md, ERD (smartstock_erd.dbml), flowcharts
+.github/              Pull request template
 ```
+
+Start here: [docs/MODULES.md](docs/MODULES.md) (who owns what) and [docs/CONVENTIONS.md](docs/CONVENTIONS.md) (how to write a page).
 
 ## Database changes
 
@@ -97,7 +114,8 @@ docs/           Flowcharts, ERD (smartstock_erd.dbml), diagrams
 docker compose down -v && docker compose up -d --build
 ```
 
-Keep `docs/smartstock_erd.dbml` in sync with `01_schema.sql`.
+This wipes your local data (only sample data, so its fine). Keep `docs/smartstock_erd.dbml` in sync with `01_schema.sql`
+and tell the group chat.
 
 ## Git workflow
 
@@ -117,15 +135,22 @@ Keep `docs/smartstock_erd.dbml` in sync with `01_schema.sql`.
 5. FEFO, Expiry and Low-Stock Alert Management
 6. Inventory Dashboard and Reporting
 
+Owners and files for each module are in [docs/MODULES.md](docs/MODULES.md).
+Only edit your own module's folders (`src/modules/<name>/` and `src/public/<name>/`).
+Shared files in `src/includes/` need the leader's OK.
+
 ## Rules
 
 - Never commit `.env` or any password. Use `.env.example` for new variables.
 - Use prepared statements (PDO) for every query that takes user input.
+- Print every value with `e()`. Every POST form uses `csrf_field()` and `csrf_verify()`.
 - Hash passwords with `password_hash()`.
 - AI-assisted code must be tested, understood, and recorded in the AI Use Log.
 
 ## Troubleshooting
 
+- Docker commands fail or "cannot connect": open Docker Desktop and wait until it is running.
 - Port already in use: change `WEB_PORT`, `PMA_PORT` or `DB_HOST_PORT` in `.env`.
 - "Connection refused" right after start: MySQL needs a few seconds on first boot; refresh.
-- Tables missing: the volume already existed. Run `docker compose down -v` and start again.
+- Tables missing or "No dev user for that role": the volume already existed. Run `docker compose down -v` and start again.
+- `dev_login.php` shows "Not found": check `.env` has `APP_ENV=development`, then `docker compose up -d --build`.
