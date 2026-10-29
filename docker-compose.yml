@@ -7,12 +7,18 @@ services:
     volumes:
       - ./src:/var/www/html
     environment:
+      APP_NAME: SmartStock
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_URL: http://localhost:${WEB_PORT:-8080}
+      # Dev-only key shared by the team so nobody has to generate one. Use a different key in production.
+      APP_KEY: ${APP_KEY:-base64:ghJ+HsLsAXf3DNk1H1Y9jrLLvofaq7VRu+FUmif0+28=}
+      DB_CONNECTION: mysql
       DB_HOST: db
       DB_PORT: 3306
-      DB_NAME: ${MYSQL_DATABASE}
-      DB_USER: ${MYSQL_USER}
-      DB_PASS: ${MYSQL_PASSWORD}
-      APP_ENV: ${APP_ENV:-development}
+      DB_DATABASE: ${MYSQL_DATABASE}
+      DB_USERNAME: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
     depends_on:
       db:
         condition: service_healthy
@@ -30,7 +36,6 @@ services:
       - "${DB_HOST_PORT:-3307}:3306"
     volumes:
       - db_data:/var/lib/mysql
-      - ./db/init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 5s
