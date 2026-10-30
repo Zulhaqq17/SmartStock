@@ -9,7 +9,8 @@
 2.
 
 ## Checklist
-- [ ] Runs with `docker compose up` without errors
+- [ ] `docker compose up -d` works and I can log in and open my pages
+- [ ] If I changed the database: I added a NEW migration (or told the team) and ran `php artisan migrate:fresh --seed` successfully
 - [ ] No secrets or `.env` files committed
-- [ ] Database changes are in `db/init/` and the team has been told
+- [ ] Forms have `@csrf`, input is validated, output uses `{{ }}`
 - [ ] I can explain every line of AI-assisted code (AI Use Log updated)
