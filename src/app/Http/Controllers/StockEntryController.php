@@ -54,7 +54,25 @@ class StockEntryController extends Controller
 
     /** TODO: validate the uploaded CSV, then $this->stockEntry->importFromCsv(...). */
     public function import(Request $request): RedirectResponse
-    {
-        return back()->with('error', 'TODO: not implemented yet.');
+{
+    $request->validate([
+        'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:2048'],
+    ]);
+
+    $result = $this->stockEntry->importFromCsv(
+        $request->file('csv_file')->getRealPath(),
+        $request->user()->id
+    );
+
+    if (empty($result['errors'])) {
+        return redirect()->route('stock_entry.index')
+            ->with('success', "{$result['imported']} batch(es) imported successfully.");
     }
+
+    $redirect = redirect()->route('stock_entry.import')->with('import_errors', $result['errors']);
+
+    return $result['imported'] > 0
+        ? $redirect->with('success', "{$result['imported']} batch(es) imported. Some rows were skipped, see below.")
+        : $redirect->with('error', 'No batches were imported.');
+}
 }
