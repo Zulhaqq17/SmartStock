@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Services\StockEntryService;
+use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Validation\Rule;
 
 /**
  * MODULE 3: Stock Entry and Batch Management
@@ -23,15 +25,27 @@ class StockEntryController extends Controller
     }
 
     public function create(): View
-    {
-        return view('stock_entry.create');
-    }
+{
+    $products = Product::where('is_active', true)->orderBy('product_name')->get();
+    return view('stock_entry.create', compact('products'));
+}
 
     /** TODO: validate, then $this->stockEntry->addBatch($validated, $request->user()->id). */
     public function store(Request $request): RedirectResponse
-    {
-        return back()->with('error', 'TODO: not implemented yet.');
-    }
+{
+    $validated = $request->validate([
+        'product_id'       => ['required', 'exists:products,id'],
+        'batch_number'     => ['required', 'string', 'max:100',
+            Rule::unique('batches')->where('product_id', $request->product_id)],
+        'initial_quantity' => ['required', 'numeric', 'gt:0'],
+        'manufacture_date' => ['nullable', 'date'],
+        'expiry_date'      => ['nullable', 'date', 'after_or_equal:manufacture_date'],
+    ]);
+
+    $this->stockEntry->addBatch($validated, $request->user()->id);
+
+    return redirect()->route('stock_entry.index')->with('success', 'Batch added successfully.');
+}
 
     public function importForm(): View
     {
