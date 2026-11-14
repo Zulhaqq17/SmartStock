@@ -178,13 +178,12 @@ class StockEntryService
     return Batch::with('product')
         ->latest()
         ->take($limit)
-    >get();
+        ->get();
 }
 
-public function updateBatch(Batch $batch, array $data, int $userId): Batch 
+public function updateBatch(Batch $batch, array $data, int $userId): Batch
 {
-    
-        return DB::transaction(function () use ($batch, $data, $userId) {
+    return DB::transaction(function () use ($batch, $data, $userId) {
         $newQty = (float) $data['current_quantity'];
         $delta  = $newQty - (float) $batch->current_quantity;
 
@@ -194,6 +193,7 @@ public function updateBatch(Batch $batch, array $data, int $userId): Batch
 
         if ($delta != 0) {
             $batch->current_quantity = $newQty;
+
             if ($newQty <= 0) {
                 $batch->status = 'depleted';
             } elseif ($batch->status === 'depleted') {
@@ -206,8 +206,12 @@ public function updateBatch(Batch $batch, array $data, int $userId): Batch
                 'quantity_changed' => $delta,
                 'remarks'          => $data['remarks'] ?: 'Manual quantity adjustment',
             ]);
-            }    
         }
+
+        $batch->save();
+
+        return $batch;
+    });
 }
 
 public function deleteBatch(Batch $batch): ?string
@@ -230,6 +234,7 @@ public function deleteBatch(Batch $batch): ?string
      });
 
      return null;
+    }
 }
         
 
