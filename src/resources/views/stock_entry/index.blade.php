@@ -28,6 +28,7 @@
             <th>Manufacture Date</th>
             <th>Expiry Date</th>
             <th>Status</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
@@ -40,9 +41,18 @@
                 <td>{{ $batch->manufacture_date ?? '-' }}</td>
                 <td>{{ $batch->expiry_date ?? '-' }}</td>
                 <td><span class="badge text-bg-secondary">{{ $batch->status }}</span></td>
+                <td class="text-nowrap">
+                    <a href="{{ route('stock_entry.edit', $batch) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                    <form method="POST" action="{{ route('stock_entry.destroy', $batch) }}" class="d-inline"
+                            onsubmit="return confirm('Delete this batch?');">
+                        @csrf
+                        @method('DELETE')
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                    </form>
+                </td>
             </tr>
         @empty
-            <tr><td colspan="7" class="text-center">No batches yet.</td></tr>
+            <tr><td colspan="8" class="text-center">No batches yet.</td></tr>
         @endforelse
     </tbody>
 </table>

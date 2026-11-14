@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Alert;
 use App\Models\Product;
 use App\Models\Batch;
 use Illuminate\Database\Eloquent\Collection;
@@ -177,6 +178,58 @@ class StockEntryService
     return Batch::with('product')
         ->latest()
         ->take($limit)
-        ->get();
+    >get();
 }
+
+public function updateBatch(Batch $batch, array $data, int $userId): Batch 
+{
+    
+        return DB::transaction(function () use ($batch, $data, $userId) {
+        $newQty = (float) $data['current_quantity'];
+        $delta  = $newQty - (float) $batch->current_quantity;
+
+        $batch->batch_number     = $data['batch_number'];
+        $batch->manufacture_date = $data['manufacture_date'] ?? null;
+        $batch->expiry_date      = $data['expiry_date'] ?? null;
+
+        if ($delta != 0) {
+            $batch->current_quantity = $newQty;
+            if ($newQty <= 0) {
+                $batch->status = 'depleted';
+            } elseif ($batch->status === 'depleted') {
+                $batch->status = 'active';
+            }
+
+            $batch->stockTransactions()->create([
+                'user_id'          => $userId,
+                'transaction_type' => 'adjustment',
+                'quantity_changed' => $delta,
+                'remarks'          => $data['remarks'] ?: 'Manual quantity adjustment',
+            ]);
+            }    
+        }
 }
+
+public function deleteBatch(Batch $batch): ?string
+{
+    $transactions = $batch->stockTransactions()->get();
+    $untouched = $transactions->count() === 1
+    && $transactions->first()->transaction_type === 'received'
+    && (float) $batch->current_quantity === (float) $batch->initial_quantity;
+
+    if (!$untouched) {
+      return 'This batch already has stock movements and cannot be deleted.';
+    }
+    if (Alert::where('batch_id', $batch->id)->exists()) {
+          return 'This batch has alerts linked to it and cannot be deleted.';
+    }
+
+    DB::transaction(function () use ($batch) {
+     $batch->stockTransactions()->delete();   
+     $batch->delete();
+     });
+
+     return null;
+}
+        
+

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\StockEntryService;
+use App\Models\Batch;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -74,5 +75,36 @@ class StockEntryController extends Controller
     return $result['imported'] > 0
         ? $redirect->with('success', "{$result['imported']} batch(es) imported. Some rows were skipped, see below.")
         : $redirect->with('error', 'No batches were imported.');
+}
+
+public function edit(Batch $batch): View
+{
+    $batch->load('product');
+    return view('stock_entry.edit', compact('batch'));
+}
+
+public function update(Request $request, Batch $batch): RedirectResponse
+{
+    $validated = $request->validate([
+        'batch_number'     => ['required', 'string', 'max:100',
+            Rule::unique('batches')->where('product_id', $batch->product_id)->ignore($batch->id)],
+        'current_quantity' => ['required', 'numeric', 'min:0'],
+        'manufacture_date' => ['nullable', 'date'],
+        'expiry_date'      => ['nullable', 'date', 'after_or_equal:manufacture_date'],
+        'remarks'          => ['nullable', 'string', 'max:500'],
+    ]);
+
+    $this->stockEntry->updateBatch($batch, $validated, $request->user()->id);
+
+    return redirect()->route('stock_entry.index')->with('success', 'Batch updated successfully.');
+}
+
+public function destroy(Batch $batch): RedirectResponse
+{
+    $error = $this->stockEntry->deleteBatch($batch);
+
+    return $error
+        ? redirect()->route('stock_entry.index')->with('error', $error)
+        : redirect()->route('stock_entry.index')->with('success', 'Batch deleted.');
 }
 }

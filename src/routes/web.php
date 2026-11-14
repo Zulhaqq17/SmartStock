@@ -65,6 +65,9 @@ Route::middleware($managerOrWarehouse)->group(function () {
     Route::post('/stock-entry', [StockEntryController::class, 'store'])->name('stock_entry.store');
     Route::get('/stock-entry/import', [StockEntryController::class, 'importForm'])->name('stock_entry.import');
     Route::post('/stock-entry/import', [StockEntryController::class, 'import'])->name('stock_entry.import.store');
+    Route::get('/stock-entry/{batch}/edit', [StockEntryController::class, 'edit'])->name('stock_entry.edit');
+    Route::put('/stock-entry/{batch}', [StockEntryController::class, 'update'])->name('stock_entry.update');
+    Route::delete('/stock-entry/{batch}', [StockEntryController::class, 'destroy'])->name('stock_entry.destroy');
 });
 
 // ---------------- Module 4: Stock movement ----------------
