@@ -18,7 +18,12 @@ class DashboardController extends Controller
     /** TODO: pass summary counts, low-stock items, expiring batches and recent movements to the view. */
     public function index(): View
     {
-        return view('dashboard.index', ['summary' => $this->dashboard->getSummaryCounts()]);
+        return view('dashboard.index', [
+            'summary' => $this->dashboard->getSummaryCounts(),
+            'lowStockItems' => $this->dashboard->getLowStockItems(),
+            'expiringBatches' => $this->dashboard->getExpiringBatches(),
+            'recentMovements' => $this->dashboard->getRecentMovements(),
+        ]);
     }
 
     public function reports(): View
