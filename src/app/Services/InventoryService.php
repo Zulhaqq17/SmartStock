@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
  * MODULE 2: Inventory and Product Management
@@ -31,6 +32,30 @@ class InventoryService
         return new Collection();
     }
 
+    /** Product list with total stock, search and filters (paginated). */
+    public function searchProducts(?string $search, ?int $categoryId, string $status = 'all'): LengthAwarePaginator
+    {
+        return Product::with('category')
+            ->withSum('batches as total_stock', 'current_quantity')
+            ->when($search, fn ($q, $s) => $q->where(fn ($w) => $w
+                ->where('product_name', 'like', "%{$s}%")
+                ->orWhere('sku_code', 'like', "%{$s}%")))
+            ->when($categoryId, fn ($q, $c) => $q->where('category_id', $c))
+            ->when($status === 'active', fn ($q) => $q->where('is_active', true))
+            ->when($status === 'inactive', fn ($q) => $q->where('is_active', false))
+            ->orderBy('product_name')
+            ->paginate(10)
+            ->withQueryString();
+    }
+
+    /** Product with category, total stock and its batches (read-only info from Module 3). */
+    public function getProductDetails(Product $product): Product
+    {
+        return $product
+            ->load(['category', 'batches' => fn ($q) => $q->orderBy('expiry_date')])
+            ->loadSum('batches as total_stock', 'current_quantity');
+    }
+
     /** TODO: used by the create/edit form dropdown. */
     public function getCategories(): Collection
     {
@@ -40,18 +65,35 @@ class InventoryService
     /** TODO: create a product from validated data. Return the new Product. */
     public function create(array $data): ?Product
     {
-        return null;
+        return Product::create($data);
     }
 
     /** TODO: update a product from validated data. */
-    public function update(Product $product, array $data): bool
+    public function update(Product $product, array $data): Product
     {
-        return false;
+        $product->update($data);
+
+        return $product;
     }
 
-    /** TODO: set is_active = false. Do NOT delete rows: batches and history depend on them. */
-    public function deactivate(Product $product): bool
+    /**
+     * Deletes the product if nothing references it; otherwise deactivates it.
+     * Returns 'deleted' or 'deactivated'.
+     */
+    public function removeOrDeactivate(Product $product): string
     {
-        return false;
+        $inUse = $product->batches()->exists()
+            || $product->alerts()->exists()
+            || $product->forecasts()->exists();
+
+        if ($inUse) {
+            $product->update(['is_active' => false]);
+
+            return 'deactivated';
+        }
+
+        $product->delete();
+
+        return 'deleted';
     }
 }

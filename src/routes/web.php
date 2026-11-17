@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AlertController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\StockEntryController;
@@ -49,13 +50,18 @@ Route::middleware($managerOrWarehouse)->group(function () {
 // ---------------- Module 2: Inventory and products ----------------
 Route::middleware('auth')->group(function () {
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
+    // whereNumber stops "/inventory/create" from being read as a product id
+    Route::get('/inventory/{product}', [InventoryController::class, 'show'])->whereNumber('product')->name('inventory.show');
 });
 Route::middleware($managerOrWarehouse)->group(function () {
     Route::get('/inventory/create', [InventoryController::class, 'create'])->name('inventory.create');
     Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
-    Route::get('/inventory/{product}/edit', [InventoryController::class, 'edit'])->name('inventory.edit');
-    Route::put('/inventory/{product}', [InventoryController::class, 'update'])->name('inventory.update');
-    Route::delete('/inventory/{product}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
+    Route::get('/inventory/{product}/edit', [InventoryController::class, 'edit'])->whereNumber('product')->name('inventory.edit');
+    Route::put('/inventory/{product}', [InventoryController::class, 'update'])->whereNumber('product')->name('inventory.update');
+    Route::delete('/inventory/{product}', [InventoryController::class, 'destroy'])->whereNumber('product')->name('inventory.destroy');
+
+    // Categories: creates categories.index/create/store/edit/update/destroy
+    Route::resource('categories', CategoryController::class)->except(['show']);
 });
 
 // ---------------- Module 3: Stock entry and batches ----------------
