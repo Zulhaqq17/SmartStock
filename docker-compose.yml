@@ -1,19 +1,54 @@
+# Settings shared by the web and scheduler containers
+x-laravel-env: &laravel-env # reusable variables / configuration for docker
+  APP_NAME: SmartStock
+  APP_ENV: ${APP_ENV:-local}
+  APP_DEBUG: ${APP_DEBUG:-true} # this line and above can be reused elsewhere :)
+  APP_URL: http://localhost:${WEB_PORT:-8080}
+  APP_TIMEZONE: Asia/Kuala_Lumpur
+  # Dev-only key shared by the team so nobody has to generate one. Use a different key in production.
+  APP_KEY: ${APP_KEY:-base64:ghJ+HsLsAXf3DNk1H1Y9jrLLvofaq7VRu+FUmif0+28=}
+  DB_CONNECTION: mysql
+  DB_HOST: db
+  DB_PORT: 3306
+  DB_DATABASE: ${MYSQL_DATABASE}
+  DB_USERNAME: ${MYSQL_USER}
+  DB_PASSWORD: ${MYSQL_PASSWORD}
+  FORECAST_URL: http://forecast:8000
+
 services:
   web:
     build: .
     container_name: smartstock_web
+    # setup the port to forward it to docker container
     ports:
-      - "${WEB_PORT:-8080}:80"
+      - "${WEB_PORT:-8080}:80"  
     volumes:
       - ./src:/var/www/html
+    environment: *laravel-env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Laravel's scheduler: the daily Module 5 check dekat (src/routes/console.php)
+  scheduler:
+    build: .
+    container_name: smartstock_scheduler
+    volumes:
+      - ./src:/var/www/html
+    environment: *laravel-env
+    entrypoint:
+      - sh
+      - -c
+      - "until [ -f vendor/autoload.php ] && php artisan migrate:status >/dev/null 2>&1; do sleep 5; done; exec php artisan schedule:work"
+    depends_on:
+      - web
+
+  # Python AI service: demand forecast, FEFO spoilage prediction, reorder suggestion for module 
+  forecast:
+    build: ./forecast
+    container_name: smartstock_forecast
     environment:
-      APP_NAME: SmartStock
-      APP_ENV: ${APP_ENV:-local}
-      APP_DEBUG: ${APP_DEBUG:-true}
-      APP_URL: http://localhost:${WEB_PORT:-8080}
-      # Dev-only key shared by the team so nobody has to generate one. Use a different key in production.
-      APP_KEY: ${APP_KEY:-base64:ghJ+HsLsAXf3DNk1H1Y9jrLLvofaq7VRu+FUmif0+28=}
-      DB_CONNECTION: mysql
+      TZ: Asia/Kuala_Lumpur
       DB_HOST: db
       DB_PORT: 3306
       DB_DATABASE: ${MYSQL_DATABASE}
