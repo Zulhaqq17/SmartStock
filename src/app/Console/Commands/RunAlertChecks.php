@@ -7,19 +7,23 @@ use Illuminate\Console\Command;
 
 class RunAlertChecks extends Command
 {
-    // Run it with: docker compose exec web php artisan alerts:check
-    protected $signature = 'alerts:check';
+    // docker compose exec web php artisan alerts:check
+    // docker compose exec web php artisan alerts:check --no-ai     (rule-based checks only)
+    protected $signature = 'alerts:check {--no-ai : Skip the AI forecast}';
 
-    protected $description = 'Run the Module 5 expiry and low-stock checks';
+    protected $description = 'Run the Module 5 expiry, low-stock and AI forecast checks';
 
     public function handle(AlertService $alerts): int
     {
-        $result = $alerts->runAllChecks();
+        $r = $alerts->runAllChecks(! $this->option('no-ai'));
 
-        $this->info(sprintf(
-            'Done. expired: %d, near expiry: %d, low stock: %d',
-            $result['expired'], $result['near_expiry'], $result['low_stock']
-        ));
+        $this->table(['Alert type', 'New'], [
+            ['expired', $r['expired']],
+            ['near_expiry', $r['near_expiry']],
+            ['low_stock', $r['low_stock']],
+            ['predicted_spoilage (AI)', $r['predicted_spoilage']],
+            ['reorder_suggested (AI)', $r['reorder_suggested']],
+        ]);
 
         return self::SUCCESS;
     }
