@@ -17,6 +17,14 @@ class EnsureRole
     {
         $user = $request->user();
 
+        if ($request->user() && ! $request->user()->is_active) {
+            auth()->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors(['email' => 'Your account has been deactivated.']);
+        }
+
         if (! $user || ! $user->hasRole(...$roles)) {
             abort(403, 'You do not have permission to view this page.');
         }
