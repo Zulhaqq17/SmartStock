@@ -24,6 +24,7 @@
                     <li class="nav-item"><a class="nav-link {{ request()->routeIs('inventory.*') ? 'active' : '' }}" href="{{ route('inventory.index') }}">Inventory</a></li>
 
                     @if (auth()->user()->hasRole(\App\Models\Role::MANAGER, \App\Models\Role::WAREHOUSE))
+                        <li class="nav-item"><a class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}" href="{{ route('categories.index') }}">Categories</a></li>
                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('stock_entry.*') ? 'active' : '' }}" href="{{ route('stock_entry.index') }}">Stock Entry</a></li>
                     @endif
 
@@ -39,13 +40,21 @@
                     @endif
                 </ul>
 
-                <span class="navbar-text me-3 text-white-50">
-                    {{ auth()->user()->name }} ({{ auth()->user()->role->role_name }})
-                </span>
-                <form method="POST" action="{{ route('logout') }}" class="d-inline">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
-                </form>
+                <div class="dropdown">
+                    <a class="btn btn-outline-light btn-sm dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        {{ auth()->user()->name }} ({{ auth()->user()->role?->role_name }})
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{{ route('profile.edit') }}">My profile</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="dropdown-item">Logout</button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
             </div>
         @endauth
     </div>
@@ -58,7 +67,8 @@
     @if (session('error'))
         <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
-    @if ($errors->any())
+    {{-- pages that show errors next to each field set @section('inline_errors', '1') to skip this summary --}}
+    @if ($errors->any() && ! View::hasSection('inline_errors'))
         <div class="alert alert-danger">
             <ul class="mb-0">
                 @foreach ($errors->all() as $error)
