@@ -19,17 +19,20 @@ class AlertController extends Controller
 
     public function index(): View
     {
-        return view('alerts.index', ['alerts' => $this->alerts->getOpenAlerts()]);
+        return view('alerts.index', [
+            'alerts' => $this->alerts->getOpenAlerts(),
+            'forecasts' => $this->alerts->getLatestForecasts(),
+        ]);
     }
 
-    /** "Run check" button. */
+    /** "Run check" button: rule-based checks + AI forecast. */
     public function run(): RedirectResponse
     {
-        $result = $this->alerts->runAllChecks();
+        $r = $this->alerts->runAllChecks();
 
         return back()->with('success', sprintf(
-            'Check finished. New alerts: %d expired, %d near expiry, %d low stock.',
-            $result['expired'], $result['near_expiry'], $result['low_stock']
+            'Check finished. New alerts: %d expired, %d near expiry, %d low stock, %d predicted spoilage, %d reorder suggestions.',
+            $r['expired'], $r['near_expiry'], $r['low_stock'], $r['predicted_spoilage'], $r['reorder_suggested']
         ));
     }
 
