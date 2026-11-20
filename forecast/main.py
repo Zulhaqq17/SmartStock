@@ -1,4 +1,5 @@
 """
+salam
 This is the forecasting service or the automation part for module 5.
 
 What it does for one product:
@@ -51,7 +52,7 @@ def load_product(cur, product_id: int) -> Optional[dict]:
     )
     return cur.fetchone() # return product info
 
-
+# Reads how much milk was used each day
 def load_daily_usage(cur, product_id: int, start: date, end: date) -> dict:
     """{date: quantity used that day} (positive numbers)."""
     cur.execute(
@@ -94,7 +95,6 @@ def build_series(usage: dict, end: date) -> list:
     return [(start + timedelta(days=i), usage.get(start + timedelta(days=i), 0.0)) for i in range(days)]
 
 # calculate day of week patterns
-
 def weekday_indices(series: list) -> list: # list mean we expect the data to be in list
     """How busy each weekday is compared with the average day (1.0 = average). Monday = 0."""
     if len(series) < SEASONALITY_MIN_DAYS: #  minimum hari 28
@@ -114,18 +114,18 @@ def weekday_indices(series: list) -> list: # list mean we expect the data to be 
 def fit(series: list) -> dict:
     """Pick the smoothing factor (alpha) with the smallest one-step-ahead error, return the final level."""
     weekday_patterns = weekday_indices(series)
-    adjusted_usage = [quantity / weekday_patterns[day.weekday()] for day, quantity in series]
+    adjusted_usage = [quantity / weekday_patterns[day.weekday()] for day, quantity in series] # kita just nak asingkan weekend sbb time tu selalu bz
     starting_level = sum(adjusted_usage[:7]) / len(adjusted_usage[:7])
 
     best_result = None
-    for alpha in ALPHAS:
+    for alpha in ALPHAS: # check each alpha and see which one gives the best result
         current_level, total_squared_error = starting_level, 0.0
         for actual_usage in adjusted_usage:
             total_squared_error += (actual_usage - current_level) ** 2
             current_level = alpha * actual_usage + (1 - alpha) * current_level
         if best_result is None or total_squared_error < best_result[0]:
             best_result = (total_squared_error, alpha, current_level)
-    return {"alpha": best_result[1], "level": best_result[2], "idx": weekday_patterns}
+    return {"alpha": best_result[1], "level": best_result[2], "idx": weekday_patterns} # we use this to predict future usage 
 
 
 # train model to predict future demand 
