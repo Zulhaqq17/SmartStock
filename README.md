@@ -5,7 +5,9 @@ Instructions/Cheatsheet  if u forgor
 Smart Inventory and Expiry Tracking System to Reduce Product Wastage in Food Manufacturing SMEs.
 BITU 3923 Workshop 2, Group K27.
 
-Stack: PHP 8.3 (Apache), MySQL 8, Docker, phpMyAdmin (dev only).
+Stack: Laravel 13 (PHP 8.3, Apache), MySQL 8, Bootstrap 5, Docker, phpMyAdmin (dev only).
+
+New to Laravel? Don't panic. Read [docs/LARAVEL_GUIDE.md](docs/LARAVEL_GUIDE.md) once (10 minutes), it explains everything we use.
 
 ## Quick start
 
@@ -21,6 +23,15 @@ cp .env.example .env  # Copy example and create local .env configuration
 docker compose up -d --build 
 ```
 
+The first start is slow (2 to 3 minutes): the container downloads Laravel's packages by itself. Watch it with:
+```bash
+docker compose logs -f web      # wait until Apache is running, then Ctrl+C
+```
+
+Then create the tables and the sample data (one time):
+```bash
+docker compose exec web php artisan migrate:fresh --seed
+```
 
 | Service | URL |
 |---|---|
@@ -28,17 +39,17 @@ docker compose up -d --build
 | phpMyAdmin | http://localhost:8081 |
 | MySQL (from host) | `localhost:3307` |
 
-Wait about 20 seconds on the first start (MySQL is importing the database), then open http://localhost:8080/health.php.
-You should see "Database connection: OK", 8 tables and 5 sample batches ordered by expiry date.
+Open http://localhost:8080 and log in with one of the dev accounts (password for all: `password`):
+
+| Role | Email |
+|---|---|
+| Manager | manager@dev.local |
+| Warehouse Staff | warehouse@dev.local |
+| Production Worker | production@dev.local |
+
+Check: Inventory page should list 4 products. Different roles see different menus.
 
 Most of the stuff already been setup so its fine 
-
-## Testing without login (dev only)
-
-Login (Module 1) is not done yet, so to test your pages as any role go to http://localhost:8080/dev_login.php
-and pick Manager / Warehouse Staff / Production Worker.
-It only works if your `.env` has `APP_ENV=development` (already in `.env.example`).
-We delete this file before final submission.
 
 ## Everyday commands
 
@@ -46,17 +57,29 @@ We delete this file before final submission.
 
 ```bash
 docker compose up -d            # start (normal daily command)
-docker compose logs -f web      # watch PHP/Apache logs
+docker compose logs -f web      # watch PHP/Apache/Laravel logs
 docker compose down             # stop (keeps data)
-docker compose down -v          # stop AND wipe your local database (re-runs db/init/*.sql)
+docker compose down -v          # stop AND wipe your local database
 docker compose exec db mysql -u root -p smartstock   # MySQL shell
 ```
 PHP files in `src/` are mounted into the container, so edit and refresh. No rebuild needed.
 
-After `git pull`: run `docker compose up -d --build` only if `Dockerfile` or `docker-compose.yml` changed,
-and `docker compose down -v && docker compose up -d --build` only if something in `db/init/` changed.
+After `git pull`: run `docker compose up -d` (it applies new migrations by itself). If `Dockerfile` or `docker-compose.yml` changed, add `--build`.
+If someone changed the seed data, run `docker compose exec web php artisan migrate:fresh --seed`.
 
-### 2. Daily Git Command (Aku pon selalu lupa)
+### 2. Laravel (artisan) Commands
+Always put `docker compose exec web` in front:
+
+```bash
+docker compose exec web php artisan route:list            # all URLs in the app
+docker compose exec web php artisan migrate               # apply new database changes
+docker compose exec web php artisan migrate:fresh --seed  # reset local DB + sample data
+docker compose exec web php artisan make:migration add_x_to_y_table
+docker compose exec web php artisan optimize:clear        # fixes "my change doesn't show up"
+docker compose exec web php artisan alerts:check          # run the Module 5 check
+```
+
+### 3. Daily Git Command (Aku pon selalu lupa)
 #### Starting & Branching
 
 ```bash
@@ -93,29 +116,37 @@ git branch -d feature/your-feature-name # Delete your old local branch (use -D i
 
 ## Project structure
 
+The Laravel app lives in `src/`.
+
 ```
-db/init/              SQL run automatically on first start (schema, then seed)
-src/config/           Database connection
-src/includes/         Shared: bootstrap, auth_check, header, footer, helpers (leader owns)
-src/modules/<name>/   Logic and SQL per module (Service.php files)
-src/public/<name>/    Pages per module (web root)
-src/public/health.php Database health check
-docs/                 MODULES.md, CONVENTIONS.md, ERD (smartstock_erd.dbml), flowcharts
-.github/              Pull request template
+src/routes/web.php                 All URLs (one block per module)
+src/app/Http/Controllers/          Controllers (receive request, return page)
+src/app/Services/                  Business logic and queries (most of your code)
+src/app/Models/                    One class per table
+src/resources/views/               Blade pages (HTML), one folder per module
+src/database/migrations/           Database structure (create/change tables)
+src/database/seeders/              Sample data
+docker/, Dockerfile, docker-compose.yml   Docker setup (leader owns)
+docs/                              LARAVEL_GUIDE.md, MODULES.md, CONVENTIONS.md, ERD, flowcharts
 ```
 
-Start here: [docs/MODULES.md](docs/MODULES.md) (who owns what) and [docs/CONVENTIONS.md](docs/CONVENTIONS.md) (how to write a page).
+Request flow: **Route -> Controller -> Service -> Model -> View**.
+Working example to copy: Inventory page (`InventoryController::index`, `InventoryService::getAllProducts`, `views/inventory/index.blade.php`).
+
+## Where do I write my module?
+
+See [docs/MODULES.md](docs/MODULES.md) for the owner and files of each module. In short, every module has:
+a controller, a service, a views folder, and a block of routes in `routes/web.php`. Only edit your own, shared files (layout, models, migrations, Docker) need the leader's OK.
 
 ## Database changes
 
-`db/init/*.sql` only runs when the database volume is created. After editing a schema file, everyone runs:
-
+We use **migrations** now, not SQL files. To change a table:
 ```bash
-docker compose down -v && docker compose up -d --build
+docker compose exec web php artisan make:migration add_notes_to_batches_table
+# edit the new file in src/database/migrations, then:
+docker compose exec web php artisan migrate
 ```
-
-This wipes your local data (only sample data, so its fine). Keep `docs/smartstock_erd.dbml` in sync with `01_schema.sql`
-and tell the group chat.
+Then add the column to the model's `$fillable`, update `docs/smartstock_erd.dbml`, and tell the group chat. Details in [docs/LARAVEL_GUIDE.md](docs/LARAVEL_GUIDE.md).
 
 ## Git workflow
 
@@ -135,22 +166,24 @@ and tell the group chat.
 5. FEFO, Expiry and Low-Stock Alert Management
 6. Inventory Dashboard and Reporting
 
-Owners and files for each module are in [docs/MODULES.md](docs/MODULES.md).
-Only edit your own module's folders (`src/modules/<name>/` and `src/public/<name>/`).
-Shared files in `src/includes/` need the leader's OK.
-
 ## Rules
 
 - Never commit `.env` or any password. Use `.env.example` for new variables.
-- Use prepared statements (PDO) for every query that takes user input.
-- Print every value with `e()`. Every POST form uses `csrf_field()` and `csrf_verify()`.
-- Hash passwords with `password_hash()`.
+- Validate every form (`$request->validate`), put `@csrf` in every POST form, print with `{{ }}`.
+- No SQL in views or controllers. Use Eloquent in services.
+- Restrict pages by role in `routes/web.php`, not only by hiding buttons.
+- Passwords are hashed automatically by the `User` model. Never store plain passwords.
+- More rules in [docs/CONVENTIONS.md](docs/CONVENTIONS.md).
 - AI-assisted code must be tested, understood, and recorded in the AI Use Log.
 
 ## Troubleshooting
 
 - Docker commands fail or "cannot connect": open Docker Desktop and wait until it is running.
+- Page not loading right after `up`: the first start is still installing packages. Check `docker compose logs -f web`.
 - Port already in use: change `WEB_PORT`, `PMA_PORT` or `DB_HOST_PORT` in `.env`.
-- "Connection refused" right after start: MySQL needs a few seconds on first boot; refresh.
-- Tables missing or "No dev user for that role": the volume already existed. Run `docker compose down -v` and start again.
-- `dev_login.php` shows "Not found": check `.env` has `APP_ENV=development`, then `docker compose up -d --build`.
+- Login says invalid / no tables / "Table doesn't exist": run `docker compose exec web php artisan migrate:fresh --seed`.
+- Red error page or "500 Server Error": read the first line of the error, or check `src/storage/logs/laravel.log`.
+- "Permission denied" on `storage`: run `docker compose exec web chmod -R a+rwX storage bootstrap/cache`.
+- Changes not showing: `docker compose exec web php artisan optimize:clear`, then hard refresh (Ctrl+F5).
+- "Class not found": missing `use ...;` at the top of the file, or `docker compose exec web composer dump-autoload`.
+- Dev accounts hint not shown on the login page: set `APP_ENV=local` in `.env`, then `docker compose up -d`.

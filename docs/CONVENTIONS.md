@@ -1,31 +1,35 @@
-# Team conventions
+# Team conventions (Laravel)
 
-## How a page is built
-```php
-<?php
-require __DIR__ . '/../../includes/bootstrap.php';            // session, db(), helpers, auth
-require __DIR__ . '/../../modules/<module>/<Name>Service.php'; // your logic
-require_role([ROLE_MANAGER, ROLE_WAREHOUSE]);                  // or require_login()
+New to Laravel? Read [LARAVEL_GUIDE.md](LARAVEL_GUIDE.md) first.
 
-// 1. handle POST (csrf_verify(), validate, call service, flash_set + redirect)
-// 2. load data with service functions
-$pageTitle = 'My Page';
-require __DIR__ . '/../../includes/header.php';
-?>
-... HTML ...
-<?php require __DIR__ . '/../../includes/footer.php'; ?>
+## Request flow (every page works like this)
+
+```
+Browser -> routes/web.php -> Controller -> Service (logic) -> Model (database) -> Blade view -> Browser
 ```
 
-## Rules
-- Logic and SQL go in `src/modules/`. Pages only call functions and display results.
-- Prepared statements for anything from the user. Never concatenate input into SQL.
-- Print every value with `e()`. Forms include `<?= csrf_field() ?>` and call `csrf_verify()` on POST.
-- Multi-table writes (batch + transaction row) use `beginTransaction()`, `commit()`, `rollBack()`.
-- Do not delete rows that history depends on: deactivate (`is_active = 0`) instead.
-- Session keys: `user_id`, `full_name`, `role`. Roles: `ROLE_MANAGER`, `ROLE_WAREHOUSE`, `ROLE_PRODUCTION`.
-- Functions: `camelCase`. Files/folders: `lowercase_with_underscores`. Service files: `<Name>Service.php`.
-- Module CSS/JS: `assets/css/<module>.css`, `assets/js/<module>.js`. Don't edit another module's files.
-- Database change? Edit `db/init/01_schema.sql`, update `docs/smartstock_erd.dbml`, tell the team.
+- **Route**: maps a URL to a controller method.
+- **Controller**: reads the request, validates input, calls a service, returns a view or redirect. Keep it thin.
+- **Service**: business rules and queries (`app/Services`). This is where most of your code goes.
+- **Model**: one class per table (`app/Models`), with relationships.
+- **View**: Blade template (`resources/views`). Display only, no queries.
 
-## Dev login
-`/dev_login.php` (only when `APP_ENV=development`) logs you in as a role for testing. Delete it before final submission.
+## Rules
+
+- No SQL in views or controllers. Use Eloquent in services.
+- Validate every form with `$request->validate([...])`. Never trust input.
+- Every `POST/PUT/DELETE` form has `@csrf` (and `@method('PUT')` / `@method('DELETE')` when needed).
+- Print values with `{{ }}` (escaped). Do not use `{!! !!}` for user data.
+- Writes that touch more than one table use `DB::transaction(function () { ... })`.
+- Do not delete rows other tables depend on: deactivate (`is_active = false`).
+- Use role constants: `Role::MANAGER`, `Role::WAREHOUSE`, `Role::PRODUCTION`. Restrict routes in `routes/web.php` (not by hiding buttons only).
+- Classes: `PascalCase` (`AlertService`). Methods/variables: `camelCase`. Views and folders: `snake_case`. Route names: `module.action` (`inventory.index`).
+- Show messages with `->with('success', '...')` / `->with('error', '...')`; the layout displays them.
+- UI uses Bootstrap 5 classes. Don't add another CSS framework.
+
+## Database changes
+
+- Never edit the database by hand in phpMyAdmin for something the team needs. Use a migration:
+  `docker compose exec web php artisan make:migration add_something_to_batches_table`
+- Update `docs/smartstock_erd.dbml` and tell the group chat.
+- Everyone then runs `docker compose exec web php artisan migrate` (or `migrate:fresh --seed` to reset local data).
