@@ -4,6 +4,7 @@
 
 @section('content')
 @php $canManage = auth()->user()->hasRole(\App\Models\Role::MANAGER, \App\Models\Role::WAREHOUSE); @endphp
+@php $isManager = auth()->user()->hasRole(\App\Models\Role::MANAGER); @endphp
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">Inventory</h1>
@@ -44,7 +45,7 @@
     <table class="table table-striped table-bordered align-middle bg-white">
         <thead class="table-light">
             <tr>
-                <th>SKU</th><th>Product</th><th>Category</th><th>Total stock</th><th>Min level</th><th>Status</th><th style="width:1%">Actions</th>
+                <th>SKU</th><th>Product</th><th>Category</th><th>Total stock</th>@if ($isManager)<th>Min level</th>@endif<th>Status</th><th style="width:1%">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -60,7 +61,7 @@
                             <span class="badge text-bg-warning">Low</span>
                         @endif
                     </td>
-                    <td>{{ rtrim(rtrim(number_format($product->min_stock_level, 2), '0'), '.') }}</td>
+                    @if ($isManager)<td>{{ rtrim(rtrim(number_format($product->min_stock_level, 2), '0'), '.') }}</td>@endif
                     <td>
                         <span class="badge {{ $product->is_active ? 'text-bg-success' : 'text-bg-secondary' }}">
                             {{ $product->is_active ? 'Active' : 'Inactive' }}
@@ -80,7 +81,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="7" class="text-center text-muted">No products found.</td></tr>
+                <tr><td colspan="{{ $isManager ? 7 : 6 }}" class="text-center text-muted">No products found.</td></tr>
             @endforelse
         </tbody>
     </table>

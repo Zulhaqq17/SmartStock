@@ -11,9 +11,11 @@
 
     <div class="col-md-6">
         <label for="sku_code" class="form-label">SKU / product code <span class="text-danger">*</span></label>
-        <input type="text" id="sku_code" name="sku_code" maxlength="50"
-               value="{{ old('sku_code', $product->sku_code ?? '') }}"
-               class="form-control @error('sku_code') is-invalid @enderror" required>
+        <input type="text" id="sku_code" name="sku_code" maxlength="50" autocomplete="off"
+            style="text-transform: uppercase"
+            oninput="const s=this.selectionStart,e=this.selectionEnd;this.value=this.value.toUpperCase();this.setSelectionRange(s,e)"
+            value="{{ old('sku_code', $product->sku_code ?? '') }}"
+            class="form-control @error('sku_code') is-invalid @enderror" required>
         @error('sku_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
@@ -43,13 +45,15 @@
         @error('unit_of_measure') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
-    <div class="col-md-3">
-        <label for="min_stock_level" class="form-label">Minimum stock level <span class="text-danger">*</span></label>
-        <input type="number" id="min_stock_level" name="min_stock_level" step="0.01" min="0"
-               value="{{ old('min_stock_level', $product->min_stock_level ?? 0) }}"
-               class="form-control @error('min_stock_level') is-invalid @enderror" required>
-        @error('min_stock_level') <div class="invalid-feedback">{{ $message }}</div> @enderror
-    </div>
+    @if (auth()->user()->hasRole(\App\Models\Role::MANAGER))
+        <div class="col-md-3">
+            <label for="min_stock_level" class="form-label">Minimum stock level <span class="text-danger">*</span></label>
+            <input type="number" id="min_stock_level" name="min_stock_level" step="0.01" min="1"
+                    value="{{ old('min_stock_level', $product->min_stock_level ?? 1) }}"
+                    class="form-control @error('min_stock_level') is-invalid @enderror" required>
+            @error('min_stock_level') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+    @endif
 
     @if ($editing)
         <div class="col-12">

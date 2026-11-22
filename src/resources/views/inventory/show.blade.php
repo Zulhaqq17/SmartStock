@@ -24,7 +24,9 @@
             <dt class="col-sm-3">SKU / code</dt><dd class="col-sm-9">{{ $product->sku_code }}</dd>
             <dt class="col-sm-3">Category</dt><dd class="col-sm-9">{{ $product->category->category_name }}</dd>
             <dt class="col-sm-3">Unit of measure</dt><dd class="col-sm-9">{{ $product->unit_of_measure }}</dd>
-            <dt class="col-sm-3">Minimum stock level</dt><dd class="col-sm-9">{{ $fmt($product->min_stock_level) }} {{ $product->unit_of_measure }}</dd>
+            @if (auth()->user()->hasRole(\App\Models\Role::MANAGER))
+                <dt class="col-sm-3">Minimum stock level</dt><dd class="col-sm-9">{{ $fmt($product->min_stock_level) }} {{ $product->unit_of_measure }}</dd>
+            @endif
             <dt class="col-sm-3">Total stock</dt><dd class="col-sm-9">{{ $fmt($product->total_stock ?? 0) }} {{ $product->unit_of_measure }}</dd>
             <dt class="col-sm-3">Status</dt>
             <dd class="col-sm-9">

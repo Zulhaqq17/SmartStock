@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\Role;
 use App\Services\InventoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,6 +15,9 @@ use Illuminate\View\View;
  */
 class InventoryController extends Controller
 {
+    /** Used when a non-Manager creates a product (they cannot set the minimum level). */
+    private const DEFAULT_MIN_STOCK = 1;
+
     public function __construct(private InventoryService $inventory)
     {
     }
@@ -47,8 +51,10 @@ class InventoryController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate($this->rules());
+        $this->normalizeInput($request);
+        $data = $request->validate($this->rules($request), $this->messages());
         $data['is_active'] = true;
+        $data['min_stock_level'] ??= self::DEFAULT_MIN_STOCK; // absent for non-Managers
 
         $this->inventory->create($data);
 
@@ -65,8 +71,10 @@ class InventoryController extends Controller
 
     public function update(Request $request, Product $product): RedirectResponse
     {
-        $data = $request->validate($this->rules($product));
+        $this->normalizeInput($request);
+        $data = $request->validate($this->rules($request, $product), $this->messages());
         $data['is_active'] = $request->boolean('is_active');
+        // for non-Managers min_stock_level is not in $data, so the stored value stays unchanged
 
         $this->inventory->update($product, $data);
 
@@ -81,18 +89,37 @@ class InventoryController extends Controller
             'success',
             $result === 'deleted'
                 ? 'Product deleted.'
-                : 'This product has batches or alert history, it was changed to inactive.'
+                : 'This product has batches or alert history, so it was deactivated instead of deleted.'
         );
     }
 
-    private function rules(?Product $product = null): array
+    /** Trim and uppercase the SKU before validation so the database stays consistent. */
+    private function normalizeInput(Request $request): void
     {
-        return [
+        if ($request->has('sku_code')) {
+            $request->merge(['sku_code' => mb_strtoupper(trim((string) $request->input('sku_code')))]);
+        }
+    }
+
+    private function rules(Request $request, ?Product $product = null): array
+    {
+        $rules = [
             'category_id' => ['required', 'exists:categories,id'],
             'product_name' => ['required', 'string', 'max:150'],
             'sku_code' => ['required', 'string', 'max:50', Rule::unique('products', 'sku_code')->ignore($product)],
             'unit_of_measure' => ['required', 'string', 'max:30'],
-            'min_stock_level' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
         ];
+
+        // Only the Manager may set the minimum stock level
+        if ($request->user()->hasRole(Role::MANAGER)) {
+            $rules['min_stock_level'] = ['required', 'numeric', 'min:1', 'max:99999999.99'];
+        }
+
+        return $rules;
+    }
+
+    private function messages(): array
+    {
+        return ['min_stock_level.min' => 'The minimum stock level must be at least 1.'];
     }
 }

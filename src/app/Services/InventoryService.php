@@ -29,7 +29,14 @@ class InventoryService
     /** TODO: search by name / SKU, optional category filter. Return a Collection of Product. */
     public function search(string $keyword, ?int $categoryId = null): Collection
     {
-        return new Collection();
+        return Product::with('category')
+            ->withSum('batches as total_stock', 'current_quantity')
+            ->when($keyword !== '', fn ($q) => $q->where(fn ($w) => $w
+                ->where('product_name', 'like', "%{$keyword}%")
+                ->orWhere('sku_code', 'like', "%{$keyword}%")))
+            ->when($categoryId, fn ($q, $c) => $q->where('category_id', $c))
+            ->orderBy('product_name')
+            ->get();
     }
 
     /** Product list with total stock, search and filters (paginated). */
@@ -69,11 +76,14 @@ class InventoryService
     }
 
     /** TODO: update a product from validated data. */
-    public function update(Product $product, array $data): Product
+    public function update(Product $product, array $data): bool
     {
-        $product->update($data);
+        return $product->update($data);
+    }
 
-        return $product;
+    public function deactivate(Product $product): bool
+    {
+        return $product->update(['is_active' => false]);
     }
 
     /**
@@ -87,7 +97,7 @@ class InventoryService
             || $product->forecasts()->exists();
 
         if ($inUse) {
-            $product->update(['is_active' => false]);
+            $this->deactivate($product);
 
             return 'deactivated';
         }
