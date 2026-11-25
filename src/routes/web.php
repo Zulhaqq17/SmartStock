@@ -67,7 +67,8 @@ Route::middleware($managerOrWarehouse)->group(function () {
     Route::post('/stock-entry/import', [StockEntryController::class, 'import'])->name('stock_entry.import.store');
     Route::get('/stock-entry/{batch}/edit', [StockEntryController::class, 'edit'])->name('stock_entry.edit');
     Route::put('/stock-entry/{batch}', [StockEntryController::class, 'update'])->name('stock_entry.update');
-    Route::delete('/stock-entry/{batch}', [StockEntryController::class, 'destroy'])->name('stock_entry.destroy');
+    Route::patch('/stock-entry/{batch}/deactivate', [StockEntryController::class, 'deactivate'])->name('stock_entry.deactivate');
+    Route::patch('/stock-entry/{batch}/reactivate', [StockEntryController::class, 'reactivate'])->name('stock_entry.reactivate');
 });
 
 // ---------------- Module 4: Stock movement ----------------

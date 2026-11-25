@@ -20,10 +20,16 @@ class StockEntryController extends Controller
     {
     }
 
-    public function index(): View
-    {
-        return view('stock_entry.index', ['batches' => $this->stockEntry->getRecentBatches()]);
-    }
+    public function index(Request $request): View
+{
+    $filters = $request->only(['q', 'product_id', 'status', 'sort']);
+
+    return view('stock_entry.index', [
+        'batches'  => $this->stockEntry->searchBatches($filters),
+        'products' => Product::orderBy('product_name')->get(),
+        'filters'  => $filters,
+    ]);
+}
 
     public function create(): View
 {
@@ -85,6 +91,9 @@ public function edit(Batch $batch): View
 
 public function update(Request $request, Batch $batch): RedirectResponse
 {
+    if ($batch->status === 'deactivated') {
+    return redirect()->route('stock_entry.index')->with('error', 'Reactivate this batch before editing it.');
+    }
     $validated = $request->validate([
         'batch_number'     => ['required', 'string', 'max:100',
             Rule::unique('batches')->where('product_id', $batch->product_id)->ignore($batch->id)],
@@ -99,12 +108,19 @@ public function update(Request $request, Batch $batch): RedirectResponse
     return redirect()->route('stock_entry.index')->with('success', 'Batch updated successfully.');
 }
 
-public function destroy(Batch $batch): RedirectResponse
+public function deactivate(Batch $batch): RedirectResponse
 {
-    $error = $this->stockEntry->deleteBatch($batch);
+    $error = $this->stockEntry->deactivateBatch($batch);
 
-    return $error
-        ? redirect()->route('stock_entry.index')->with('error', $error)
-        : redirect()->route('stock_entry.index')->with('success', 'Batch deleted.');
+    return redirect()->route('stock_entry.index')
+        ->with($error ? 'error' : 'success', $error ?? 'Batch deactivated.');
+}
+
+public function reactivate(Batch $batch): RedirectResponse
+{
+    $error = $this->stockEntry->reactivateBatch($batch);
+
+    return redirect()->route('stock_entry.index')
+        ->with($error ? 'error' : 'success', $error ?? 'Batch reactivated.');
 }
 }
